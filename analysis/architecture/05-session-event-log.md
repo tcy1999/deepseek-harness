@@ -34,7 +34,7 @@ flowchart TD
 
 [`Session`](../../packages/core/session/src/index.ts)维护只追加事件数组、序号、模型消息缓存和 metadata。默认 Loop 不另存一份 conversation history；每次请求都调用 `deriveMessages()`，按 [`surface.ts`](../../packages/core/session/src/surface.ts) 中的规则从事件生成模型消息。
 
-请求进入 `llm/stream` 时，[`agent-loop` 的运行时检查](../../packages/core/agent-loop/src/invariant.ts)再次调用 `deriveMessages()`，然后把结果与请求中的 `messages` 比较。两者不同就抛出 `InvariantError`，不会继续调用模型 Provider。Agent Loop 会发送 `agent/error`、结束当前 turn，并在最外层 driver 接住错误；Agent 随后回到 idle，整个 DSH 进程和其他 Agent 继续运行。检查还会比较 model、system prompt、temperature、最大 token 数、stop 和 tools 是否与日志中的 `request/header` 相同。
+请求进入 `llm/stream` 时，[`agent-loop` 的运行时检查](../../packages/core/agent-loop/src/invariant.ts)再次调用 `deriveMessages()`，然后把结果与请求中的 `messages` 比较。两者不同就抛出 `InvariantError`，不会继续调用模型 Provider。Agent Loop 会发送 `agent/error`、结束当前 turn，并在最外层 driver 接住错误；Agent 随后回到 idle，整个 DSH 进程和其他 Agent 继续运行。检查还比较 model、temperature、最大 token 数、stop 和 tools 与 `request/header` 是否一致，并要求请求不携带独立 `system` 字段；系统提示词已经包含在日志派生的 `messages` 中。
 
 ## 写入事件前检查顺序
 
@@ -60,15 +60,25 @@ flowchart TD
 
 Turn/step、user、assistant、tool、request header 等是结构事件。前一节所述的运行时检查负责验证这些事件的顺序。
 
-## 为什么同时记录 Chunk 和 Message
+## 实时流与持久化尝试
 
-每个 `assistant/chunk` 原样追加，最终 `assistant/message` 记录 assembled content、usage 和 `sourceEventSeqs`。前者保留流式重放与 UI 忠实度，后者给模型历史和查询提供稳定节点。两者不是重复事实：message 是 commit 后的语义结果，chunk 是传输过程证据。
+实时输出通过 `agent/assistant-stream` 发布 start、chunk、end 帧。当前格式不逐条追加 `assistant/chunk`：一次尝试结束后，成功输出写为 `assistant/message`，失败、重试或取消的尝试写为 `assistant/attempt`；两者都内嵌完整的紧凑带时间 `stream`。持久提交先于 committed end 帧，`assistant/attempt` 不增加模型历史。实现见 [`assistant-stream.ts`](../../packages/core/agent-loop/src/assistant-stream.ts)。
 
-[`surface.ts`](../../packages/core/session/src/surface.ts)把事件转换为模型消息节点。`deriveMessages()` 只处理上次计算后新增的节点并缓存结果；content 为空的 assistant message 可以只记录 usage，不进入模型历史。计算只依赖日志，不读取当前插件状态，因此同一日志在恢复后会得到相同消息。
+```text
+Provider chunks → BlockAssembler + 紧凑流记录
+  ├→ agent/assistant-stream → 当前连接的增量 UI
+  └→ 尝试结算 → assistant/message 或 assistant/attempt → 持久化与回放
+```
 
-## Request Header 与 Epoch
+例如，模型已输出半句但进程在尝试结算前崩溃，用户可能曾看到这半句，日志却没有完整尝试可供恢复。结算后的流可以回放；不能把实时已显示等同于已持久化。
 
-循环记录规范化 request header，用于恢复 provider/model 和 call config。Adapter materialized defaults 与用户 proposal 分开保存，后续请求重新提出时移除 adapter-derived 值，再由当前 adapter resolve。这避免默认值被误认为用户固定选择，也能检测恢复后的模型 epoch 变化。相关实现见 [`request-header.ts`](../../packages/core/session/src/request-header.ts)和 Agent Loop 的 `requestProposal()`。
+[`surface.ts`](../../packages/core/session/src/surface.ts)增量计算模型消息节点。`sourceEventSeqs` 描述替换节点与已有节点的关系，不是逐 chunk 拼装清单；`assistant/attempt` 只留在日志中。计算不依赖当前插件状态。
+
+## 系统提示词与请求序列
+
+`system/message` 保存系统提示词，`request/header` 保存规范化 provider/model、调用配置与工具定义，`request/context` 保存路由的上下文窗口和系统提示词更新能力。空提示词清除生效系统节点；支持增量更新的路由可在同一请求序列的缓存前缀后追加更新，其他路由或新序列将提示词归并到首个系统节点。
+
+Adapter 默认值与用户显式选择分开处理，下一次解析时由当前 adapter 重新物化默认值。`agent/pre-step` 的 `startsRequestSeries`、提示词替换或 compaction 等历史替换会触发新请求序列；单纯追加历史不等于更换序列。详见 [`request-header.ts`](../../packages/core/session/src/request-header.ts) 与 [Prompt 和 LLM](06-prompt-llm-streaming.md)。
 
 ## Fork、恢复与修复
 
@@ -78,8 +88,10 @@ Turn/step、user、assistant、tool、request header 等是结构事件。前一
 
 ## 内存中的 Session 不直接写磁盘
 
-`SessionStore` 是 live in-memory registry，不直接读写磁盘。Persistence plugin 监听 `session/event`、flush 和 dispose，将事件交给 JSONL/SQLite backend。这样核心日志语义不依赖存储，但 durable checkpoint 必须由独立 policy 在模型请求和顶层工具执行前强制等待，见[持久化专题](12-persistence-and-projections.md)。
+`SessionStore` 保存进程内日志。Agent Loop 通过 `SessionPersistence.create()` 或 `open(id, 'write')` 取得写句柄，JSONL 提供方再将 `session/event` 批次路由到这个句柄。Checkpoint policy 在模型和顶层工具产生外部操作前调用 `sessions.flush()`；只有等待成功才继续执行，见[持久化专题](12-persistence-and-projections.md)。
 
 ## 格式演进
 
-`SESSION_FORMAT_VERSION` 只为 envelope 等结构格式变化递增；新增 typed event 通常通过 required/ignorable read 语义演进。Pre-release 阶段不承诺旧格式兼容，backend 可以直接拒绝不支持版本。严格拒绝比“尽量读”更符合模型上下文完整性：静默跳过事件可能生成与原会话不同的请求。
+Session 的当前版本和受支持历史版本由[格式状态文档](../../docs/session-format-status.md)与 `session-format-catalog` 定义。消费者读取当前逻辑格式，受支持的历史格式通过静态相邻迁移链转换。只读打开仅在内存转换；写打开在原文件旁发布已校验的当前代际，不移动、覆盖或删除已提交的历史代际。未来版本或不能安全迁移的事件明确拒绝。
+
+`SESSION_FORMAT_VERSION` 用于结构格式变化；新增 typed event 通常使用 required-on-read / `ignorable` 规则。公开 API 仍处于 pre-stable 阶段，但已发布 Session 数据的代际保护与迁移规则必须遵守，不能由包是否稳定来推断可以删除旧记录。

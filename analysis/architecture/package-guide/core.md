@@ -2,9 +2,9 @@
 
 ## core
 
-- [`core/agent`](../../../packages/core/agent/README.md)（D）：实时 Agent 接口、Registry、Inbox、initiator AsyncLocalStorage 与 `agent/*` 事件；具体驱动不在此包。入口 `src/index.ts`、`runtime-types.ts`、`inbox.ts`、`dispatch.ts`。
+- [`core/agent`](../../../packages/core/agent/README.md)（D）：实时 Agent 接口、Registry、输入协议、initiator AsyncLocalStorage 与 `agent/*` 事件；具体驱动不在此包。入口 `src/index.ts`、`runtime-types.ts`、`dispatch.ts`。
 - [`core/agent-default-model`](../../../packages/core/agent-default-model/README.md)（X）：在 Agent request 配置缺省时应用部署默认 provider/model；通过扩展点工作，不修改 Loop。
-- [`core/agent-loop`](../../../packages/core/agent-loop/README.md)（P）：默认 `ReactLoopAgent`、Agent factory、turn/step 状态机、LLM stream 和 tool scheduler。入口 `src/agent.ts`、`tool-calls.ts`、`index.ts`。
+- [`core/agent-loop`](../../../packages/core/agent-loop/README.md)（P）：默认 `ReactLoopAgent`、Agent factory、turn/step 状态机、LLM stream 和 tool scheduler。入口 `src/agent.ts`、`inbox.ts`、`assistant-stream.ts`、`tool-calls.ts`、`index.ts`。
 - [`core/agent-tool-presentation`](../../../packages/core/agent-tool-presentation/README.md)（X）：按 Agent/preset 解析 native/code 工具展示模式，保持 schema 与 executor 的 scope 决策一致。
 - [`core/scope`](../../../packages/core/scope/README.md)（S）：Agent scoped contribution 的 target、解析与可见性原语；不同于 Cordis isolate。
 - [`core/session`](../../../packages/core/session/README.md)（D）：追加式 Session Event、live store、派生模型消息、fork、repair、JSON 和 runtime invariant。入口 `src/index.ts`、`types.ts`、`surface.ts`。

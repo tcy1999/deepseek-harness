@@ -2,7 +2,7 @@
 
 ## Test Support
 
-- [`test-support/acp-snapshot`](../../../packages/test-support/acp-snapshot/README.md)（S）：ACP/headless keyless transcript harness 与 fixture replay。
+- [`test-support/session-snapshot`](../../../packages/test-support/session-snapshot/README.md)（S）：ACP/headless keyless transcript harness 与 fixture replay。
 - [`test-support/agent-loop-testkit`](../../../packages/test-support/agent-loop-testkit/README.md)（S）：Agent Loop 单元/集成测试构造和等待辅助；不能替代真实 Loader composition。
 - [`test-support/client-runtime`](../../../packages/test-support/client-runtime/README.md)（S）：浏览器 Cordis/UI 测试 runtime。
 - [`test-support/llm-mock-server`](../../../packages/test-support/llm-mock-server/README.md)（S）：可控模型 wire mock server。

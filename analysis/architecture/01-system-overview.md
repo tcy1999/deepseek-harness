@@ -24,14 +24,15 @@ flowchart LR
 
   llm --> llmProvider["LLM Provider<br/>DeepSeek 或其他实现"]
   tools --> capabilityProvider["能力 Provider<br/>FS / Shell / Skill / Workflow / MCP"]
-  session --> persistence["持久化 Provider<br/>JSONL / SQLite"]
+  session --> persistence["会话持久化<br/>JSONL + 单写者句柄"]
+  persistence --> query["Session Query<br/>SQLite 检索索引"]
   session --> projection["Projection<br/>消息、标题、统计、UI 节点"]
   projection --> entry
 ```
 
 Profile 决定本次启动安装哪些插件。Loader 根据 Profile 创建运行时；Agent Loop 通过统一接口调用 Prompt、LLM 和工具，并把模型可见事实写入 Session。模型 Provider、工具 Provider、存储和界面都可以替换，但必须遵守对应接口、事件格式、作用域和生命周期规则。
 
-## 产品内核不是一个 Loop
+## Agent 接口与默认循环
 
 从目录看，`packages/core/agent-loop` 像传统 Agent 框架的中心；从依赖和运行时看，它只是 `Agent` 接口的一个具体驱动。`packages/core/agent` 提供实时 Agent 注册表和接口，`packages/core/session` 提供持久事实，`packages/core/tools` 与 `packages/llm/llm` 提供能力注册表，最终由 [bundle patch](../../packages/bundle/base/cordis.patch.yml)把它们装成一个产品。UI、ACP 或 headless 只是同一能力树的不同叶节点。
 

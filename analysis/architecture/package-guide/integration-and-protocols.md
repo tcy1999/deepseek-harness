@@ -11,11 +11,18 @@
 ## API 与 SDK
 
 - [`api/gateway`](../../../packages/api/gateway/README.md)（X）：Typert RPC/BFF 组装、方法与订阅 dispatch。
-- [`api/remotes`](../../../packages/api/remotes/README.md)（D/S）：host/client 远程 contract face 与生成类型。
+- [`api/remotes`](../../../packages/api/remotes/README.md)（X）：转发明确允许的 Host 事件，并组装 Client 领域控制器。
 - [`sdk/protocol`](../../../packages/sdk/protocol/README.md)（D）：JSON-RPC wire、request/response/event 和 branded identity。
 - [`sdk/server`](../../../packages/sdk/server/README.md)（P/X）：将 Agent runtime 暴露为 JSON-RPC server。
 - [`sdk/client`](../../../packages/sdk/client/README.md)（C）：管理连接和订阅，把响应对应到请求，并在断线时结束未完成请求。
 - [`acp/acp`](../../../packages/acp/acp/README.md)（P/X）：automation-only ACP server，拥有其创建的 AgentHandle 并映射协议生命周期。
+
+## API 领域控制器
+
+- [`api/session-controller`](../../../packages/api/session-controller/README.md)（X）：Session 创建、恢复、命令、历史 follow 与客户端状态。
+- [`api/workspace-controller`](../../../packages/api/workspace-controller/README.md)（X）：Workspace 操作、列表和目录选择。
+- [`api/settings-controller`](../../../packages/api/settings-controller/README.md)（X）：设置与凭据操作。
+- [`api/workspace-files`](../../../packages/api/workspace-files/README.md)（X）：工作区文件读取与变更流。
 
 ## Hooks 与 MCP
 
@@ -36,12 +43,13 @@
 - [`subagent/subagent-codex`](../../../packages/subagent/subagent-codex/README.md)（P）：Codex Provider。
 - [`subagent/tool-subagent`](../../../packages/subagent/tool-subagent/README.md)（C）：创建/委托子任务。
 - [`subagent/tool-subagent-control`](../../../packages/subagent/tool-subagent-control/README.md)（C）：控制运行中子任务。
-- [`subagent/tool-subagent-report`](../../../packages/subagent/tool-subagent-report/README.md)（C）：读取/报告子任务结果。
 
-## Examples
+## 应用与示例
 
-- [`examples/agent-spine-demo`](../../../packages/examples/agent-spine-demo/README.md)（X）：最小 Agent spine bundle，供真实组合与 CLI 示例复用。
-- [`examples/acp-demo`](../../../packages/examples/acp-demo/README.md)（X）：ACP 可运行示例入口。
-- [`examples/jsonrpc-demo`](../../../packages/examples/jsonrpc-demo/README.md)（X）：JSON-RPC server/client 示例。
+- [`apps/cli`](../../../apps/cli/README.md)：`dsh` profile 启动与插件管理。
+- [`apps/desktop`](../../../apps/desktop/README.md)：Electron 壳、内置运行时和 desktop profile。
+- [`bundle/sdk-app`](../../../packages/bundle/sdk-app/README.md)（X）：SDK stdio 应用组合。
+- [`bundle/sdk-minimal`](../../../packages/bundle/sdk-minimal/README.md)（X）：独立的最小 SDK 配置树。
+- [`bundle/acp-app`](../../../packages/bundle/acp-app/README.md)（X）：ACP 应用组合。
 
-示例包不仅用于教学，也是 snapshot/real-composition 的可执行应用叶节点；改变产品可见行为时，应更新真实示例 transcript，而不是只改 mock fixture。
+可运行示例通过受支持的 `dsh` profile 启动，调用方式见 [TypeScript SDK](../../../packages/sdk/client/README.md)与 [Python SDK](../../../python/README.md)，记录回放见 [Session snapshot 支撑](../../../packages/test-support/session-snapshot/README.md)。

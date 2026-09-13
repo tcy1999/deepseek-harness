@@ -1,28 +1,50 @@
 # Session 怎样保存，以及怎样供 UI 和查询读取
 
-## 三项分开的工作
+## 从事件到存储和读取结果
 
-1. `core/session` 保存当前进程中的追加式日志，并检查事件顺序；
-2. `session-persistence` 定义保存、加载和 checkpoint，JSONL 和 SQLite 提供具体存储；
-3. projection、query、title、stats 和 telemetry 根据日志计算读取结果。
+`core/session` 保存进程内的追加式日志；`session-persistence` 定义按会话获取的读写句柄；JSONL 提供方保存权威日志；projection、query、title、stats 和 telemetry 再从日志生成各自的读取结果。SQLite 用于查询索引或非 Session 业务存储，当前没有独立的 SQLite Session 日志提供方。
 
-这里的 projection（投影）就是“按规则读取 Session Event，并计算出另一种方便使用的数据”。例如，同一份日志可以计算出模型消息、会话标题、使用量统计和 UI 节点。投影可以缓存，但不能修改日志，也不能成为另一份会话事实。
+```mermaid
+flowchart LR
+  loop["Agent Loop"] -->|create / open write| handle["SessionHandle<br/>单写者"]
+  loop -->|append event| session["进程内 Session"]
+  session -->|session/event| queue["JSONL 句柄写入队列"]
+  queue -->|append / flush| disk["JSONL 日志代际"]
+  handle --> queue
+  session --> projection["Session Projection"]
+  disk --> query["Session Query<br/>SQLite 索引"]
+  projection --> view["API / UI / 统计"]
+  query --> view
+```
 
-把三项工作分开后，数据库 schema 不会反过来决定 Agent 记录哪些事件，UI 查询也不会成为写入会话状态的另一条路径。
+投影是根据事件计算出的状态，例如标题和使用量统计。缓存可从日志重建，不能反过来成为会话事实的写入入口。
 
-## 后台写盘由谁协调
+## 句柄和单写者归属
 
-[`session-persistence`](../../packages/session/session-persistence/src/coordinator.ts)监听 Session 的创建、事件和释放，把新增事件放入后台写盘队列，并在 flush 或 dispose 时等待写盘完成。它用 revision 和 preparation 状态防止加载、首次保存和并发追加互相覆盖。Backend 负责文件原子替换或数据库事务；coordinator 决定当前 Session 的各批事件按什么顺序交给 backend。
+[`SessionPersistence`](../../packages/session/session-persistence/src/index.ts) 的 `create()` 返回写句柄；`open(id, 'read')` 不占用写权限，`open(id, 'write')` 原子取得写权限，已有写者时拒绝。调用方通过句柄执行 `read`、`append`、`flush`、`close`，而 `stat` 和 `list` 只读取轻量元数据。关闭句柄会释放写权限。
 
-Write-behind 减少每个 chunk 等待磁盘的时间，但内存日志可能暂时领先磁盘。`session-checkpoint-policy` 会在发起模型请求、执行顶层工具和开始新 step 前等待 checkpoint，保证新的外部操作开始前，导致该操作的历史已经保存。如果 checkpoint 失败，后续操作不会执行。
+Agent Loop 是生产路径中的写句柄获取者。创建时先准备 Session，恢复时先打开日志并补齐中断轮次，再完成 Agent setup。发布前写入 setup 期间产生的事件，发布后由 JSONL 提供方按 Session id 路由实时事件。卸载时先停止并等待 Agent，再写入结束事件、排空写入队列并关闭句柄。
 
-## JSONL 与 SQLite
+## 后台写盘与 checkpoint
 
-JSONL backend 维护一份逻辑追加式 JSONL，但默认物理文件是 `.jsonl.zstd`：header 和每批 append 分别写成带 checksum 的独立 Zstandard frame，连续 chunk 还可打包成一条 storage row，因此默认文件不能直接逐行人工读取。只有 `compression: 'none'` 才保存原始 `.jsonl` 文本。Backend 会 `fsync` 每批写入，回滚失败的部分 append，并在加载时截断可恢复的 torn tail；SQLite 则提供事务、索引和可查询的事件存储。
+[`JsonlBackendTracker` 和 `JsonlSessionHandle`](../../packages/session/session-persistence-jsonl/src/storage.ts)负责已发布 Session 的事件路由、每句柄的串行写操作和后台批处理。首条待写事件启动固定批处理窗口，后续事件加入同一批；写入期间到达的事件另成一批。写盘失败保留待写事件并暂停自动重试，显式 flush 再重试或报告失败。
 
-两种 backend 必须提供相同的保存、加载和 checkpoint 操作，并明确拒绝不支持的格式，不能猜测如何迁移。SQLite schema 版本只能递增；Session Event 外层格式使用另一个版本号，两者记录不同内容。
+[`session-checkpoint-policy`](../../packages/session/session-checkpoint-policy/src/index.ts)在 `agent/pre-step`、`llm/stream` 和顶层 `tools/execute` 等待 `sessions.flush()`。模型流必须在历史持久化后才调用适配器，工具 body 必须在调用事实持久化后才开始。嵌套工具调用复用外层调用的 checkpoint。
 
-`storage` 家族保存非 Session 数据，提供 JSON/SQLite backend 和各类业务数据的读写接口。它不替代 session persistence，因为 Session Log 还需要检查事件顺序、修复崩溃留下的不完整 turn、等待 checkpoint，并重建模型消息。
+```text
+记录请求 / tool/call → sessions.flush() → 成功 → 模型或工具产生外部操作
+                                      └→ 失败 → 不调用下游
+```
+
+这保证外部操作开始前，导致操作的历史已经保存；不能保证操作结果也已保存。例如文件写入后、`tool/result` 落盘前崩溃，恢复仍需将结果标为未知。
+
+## JSONL 代际与格式迁移
+
+JSONL 提供方支持原始文本与 Zstandard 压缩，默认使用带 checksum 的独立压缩帧保存 header 和追加批次。`compression: 'none'` 才生成可以直接逐行读取的 JSONL。写入路径同步文件并处理失败的部分追加，读路径不把 torn tail 当作完整事件；物理尾部修复与 Agent 层补 `turn/end` 是两种不同工作。
+
+同一会话目录可能包含多个格式代际。提供方选择编号最高的规范代际，拒绝未来版本；受支持历史格式通过静态相邻迁移链生成当前逻辑事件。只读打开不发布文件，写打开在持有单写者权限时校验并排他发布当前代际。已提交的历史文件保持原样。版本与命名规则见[格式状态](../../docs/session-format-status.md)和 [`generation.ts`](../../packages/session/session-persistence-jsonl/src/generation.ts)。
+
+`storage` 家族管理 Workspace、设置等非 Session 数据，可选择 JSON 或 SQLite。其数据库 schema 版本与 Session 格式版本各自独立，不应把通用存储后端当作 Session 日志实现。
 
 ## 附件与 Workspace 不是 Session backend 的附属表
 
@@ -46,4 +68,4 @@ Title Provider 根据符合条件的 prompt 生成 `session/title` event；`firs
 
 ## 不同读取方式何时能看到新事件
 
-当前进程写入 Session 后可以立即读取；投影可以同步或增量更新；checkpoint 完成后才能保证 write-behind 已经落盘；远程查询只能看到 backend 已提交的数据。因此不同读取方式可能短暂看到不同进度。系统在发起新的模型请求或外部操作前等待 checkpoint，避免动作已经发生而相关历史尚未保存。
+当前进程写入 Session 后可以立即读取；投影可以同步或增量更新；checkpoint 完成后才能保证 write-behind 已经落盘；查询会根据 live Session、准备中的读取结果或持久数据选择来源。因此不同读取方式可能短暂看到不同进度。系统在发起新的模型请求或外部操作前等待 checkpoint，避免动作已经发生而相关历史尚未保存。

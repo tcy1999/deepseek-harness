@@ -4,7 +4,7 @@
 
 ## 简介
 
-DeepSeek Harness 不是一个固定的 Agent Loop 再外挂插件。它用 Cordis 插件组装模型适配器、Agent、循环、工具、日志、持久化、审批和 Web UI。
+DeepSeek Harness 用 Cordis 插件组装模型适配器、Agent、循环、工具、日志、持久化、审批和 Web UI。Profile 选择应用级组合，Agent preset 决定单个会话使用的插件。
 
 其中很多部分都能替换。例如，模型请求可以交给 DeepSeek Provider 或其他 Provider，文件操作可以在本机或 E2B 中执行，产品也可以带 Web UI 或只运行命令行。替换后的实现必须提供调用方需要的相同操作和错误结果，不能只做到“类型能编译”。
 

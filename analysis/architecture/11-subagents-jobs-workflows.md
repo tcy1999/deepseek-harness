@@ -14,13 +14,19 @@ Subagent 表示把自然语言任务交给另一个 Agent runtime；Job 表示�
 - `subagent-dsh-sdk`、`subagent-acp` 连接另一个 Harness/ACP；
 - `subagent-claude-code`、`subagent-codex` 对接外部产品。
 
-`tool-subagent` 发起任务，control/report tools 管理已有任务。Consumer 不暴露 provider 进程细节，统一使用 opaque branded id 和结构化状态。Delegation depth 写入 Session metadata，防止无界递归不是只靠 prompt 提醒。
+`tool-subagent` 发起任务，`tool-subagent-control` 提供消息发送、列表和中断操作。Consumer 不暴露 provider 进程细节，统一使用 opaque branded id 和结构化状态。Delegation depth 写入 Session metadata，防止无界递归不是只靠 prompt 提醒。
 
 ## Fork 会继承历史，Spawn 不会
 
 Fork 继承父 Session 的已完成历史，因此 child 能理解上下文，但复制更多 token 并建立 lineage；spawn 只接收明确任务与 preset，隔离更强。二者都必须创建完整 Agent scope，setup 成功后才发布。In-process 不等于共享全部注册：preset 和 scope 可以给 child 不同工具与 persona。
 
 外部 Provider 不能提供与 in-process 完全相同的实时事件，因此公共接口只保留所有 Provider 可兑现的控制和报告。将某一 Provider 的 streaming detail 加入 Definition 会迫使其他 Provider 模拟不存在的语义。
+
+## 持续协作与 Agent Teams
+
+子 Agent 可在一轮完成后继续接收明确寻址的消息。`send_message` 返回 inbox 接纳结果，不把该次发送与目标的某个最终响应强行配对；后续内容记录在目标 Session 中。普通 Session API 也不能绕过 subagent 的归属规则接管子会话。
+
+[实验性 Agent Teams](../../packages/experimental/agent-team/README.md)在 continuable subagent 之上提供持久成员表、任务板和邮箱。它是显式启用的协作能力，不能把所有后台工作都当作 Team 成员。
 
 ## Jobs
 

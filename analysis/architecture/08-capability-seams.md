@@ -6,6 +6,12 @@
 
 例如 shell：`shell/shell` 定义 request/spec 与 backend registry，`bash-local`、`bash-sandbox`、`pwsh-*` 是 Provider，`tool-bash`、`tool-pwsh` 是模型 Consumer。Bundle 决定装哪个 Provider。若工具包直接 spawn，它既绕过 subprocess/sandbox，又使远程执行需要 fork 工具实现。
 
+```text
+Bundle 选择 Provider 并安装 Consumer
+  tool-bash → shell（Definition）→ bash-local（Provider）→ subprocess
+  tool-fs   → fs（Definition）   → fs-local / fs-e2b（Provider）
+```
+
 ## Request/Spec 分离
 
 部署可变默认值在 Provider 或 owning implementation 的 `resolve(request): spec` 阶段显式物化，`run(spec)` 不用隐藏的 `?? default`。这让实际 Provider invocation、诊断和测试面对一个完整 spec，也让不同 Provider 对缺省值的解释有明确 owner；但 Tool Runtime 的日志和通用 `ApprovalRequest` 不会自动保存这个 spec。某个 resolved 字段若必须进入审计或审批，Consumer 要在相应边界前物化并明确传递，不能仅依赖 body 内部的 `resolve()`。

@@ -3,7 +3,6 @@
 ## Host
 
 - [`host/webserver`](../../../packages/host/webserver/README.md)（D/P）：HTTP server/route 能力与生命周期。
-- [`host/apiproxy`](../../../packages/host/apiproxy/README.md)（P/X）：浏览器到 API Gateway 的 transport bridge。
 - [`host/frontend-static`](../../../packages/host/frontend-static/README.md)（P）：前端静态 artifact 服务。
 - [`host/plugin-inventory`](../../../packages/host/plugin-inventory/README.md)（D/X）：发布有效插件/配置的只读 inventory，不拥有 Loader 状态。
 - [`host/directory-picker`](../../../packages/host/directory-picker/README.md)（D）：目录选择能力。
@@ -13,14 +12,16 @@
 
 ## Client Runtime 基础
 
+- [`api/gateway`](../../../packages/api/gateway/README.md)（X）：Remote 方法分派与实时流传输。
+- [`api/session-controller`](../../../packages/api/session-controller/README.md)（X）：浏览器 Session 状态、历史游标和实时 assistant stream 协调。
+- [`client/store`](../../../packages/client/store/README.md)（S）：React 无关的可观察状态与快照。
+- [`client/ui-renderer`](../../../packages/client/ui-renderer/README.md)（X）：React 渲染集成与共享 UI 适配。
+
 - [`client/connection`](../../../packages/client/connection/README.md)（D/P）：浏览器 transport、重连、请求 correlation 和订阅。
-- [`client/runtime`](../../../packages/client/runtime/README.md)（D/X）：浏览器 Cordis runtime 与远程对象生命周期。
 - [`client/modules`](../../../packages/client/modules/README.md)（D）：客户端模块注册与发现。
 - [`client/hmr`](../../../packages/client/hmr/README.md)（X）：浏览器插件热重载。
 - [`client/locale`](../../../packages/client/locale/README.md)（D/X）：locale service 与资源贡献。
-- [`client/schema-form`](../../../packages/client/schema-form/README.md)（C/S）：配置 schema 到表单。
 - [`client/web`](../../../packages/client/web/README.md)（X）：浏览器应用 composition shell。
-- [`client/web-react`](../../../packages/client/web-react/README.md)（P/X）：React renderer 与根生命周期。
 - [`client/ui-primitives`](../../../packages/client/ui-primitives/README.md)（S）：共享 UI primitives。
 - [`client/ui-slots`](../../../packages/client/ui-slots/README.md)（D）：可撤销的 UI slot/renderer registry。
 - [`client/ui-layout`](../../../packages/client/ui-layout/README.md)（X）：应用布局和 slot placement。

@@ -4,7 +4,7 @@
 
 静态检查和多数测试通过 tsconfig paths 读取 `src`，必须在没有旧构建产物时也能通过。验证发布内容的测试则先 build，再用普通 Node 读取 `lib`。如果混在一起，本地测试可能误读旧 `lib`，也可能漏掉 package exports 错误。
 
-Host 和 Client 分别使用不同的 TypeScript 编译配置。普通包只有一个汇总配置；client 包不能引入只在 Node 中可用的依赖；API remotes 因为要生成远程接口而单独编译。`tsdown` 生成运行时代码，`tsc -b` 检查 TypeScript 项目依赖图。
+Host 和 Client 分别使用不同的 TypeScript 编译配置。同时包含两种程序的包使用 `tsconfig.host.json` 与 `tsconfig.client.json`，根配置只汇总引用；仅有一种程序的包使用自己的叶配置。Client 不能引入只在 Node 中可用的依赖。`tsdown` 生成运行时代码，`tsc -b` 检查 TypeScript 项目依赖图。
 
 ## 测试层级
 
@@ -29,7 +29,7 @@ CI 用 `test:coverage` 检查覆盖率，要求 `packages/*/*/src` 每个文件�
 
 ## 运行时检查和测试各自发现什么
 
-测试验证预先写出的场景。Runtime invariant 在实际运行时检查事件和状态之间的关系，例如模型请求是否等于 Session Log 算出的消息。它用于发现某种插件组合破坏了这些关系，不重复单元测试中的固定样例。静态检查确认每个 package 正确导出并声明 invariant；发布物检查确认 build 后仍包含这些导出。
+测试验证预先写出的场景。Runtime invariant 在实际运行时检查事件和状态之间的关系，例如模型请求是否等于 Session Log 算出的消息。它用于发现某种插件组合破坏了这些关系，不重复单元测试中的固定样例。静态检查确认声明 companion 的 package 正确导出 invariant，未声明的包解释省略原因；发布物检查验证实际导出。
 
 ## 为什么不默认全跑
 

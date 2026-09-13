@@ -2,10 +2,15 @@
 
 ## Session Persistence
 
-- [`session/session-persistence`](../../../packages/session/session-persistence/README.md)（D/X）：backend contract、live coordinator、write-behind、revision 和 preparation。
-- [`session/session-persistence-jsonl`](../../../packages/session/session-persistence-jsonl/README.md)（P）：追加式 JSONL 后端与原子文件操作。
-- [`session/session-persistence-sqlite`](../../../packages/session/session-persistence-sqlite/README.md)（P）：事务 SQLite 后端、schema version 与事件存储。
+- [`session/session-persistence`](../../../packages/session/session-persistence/README.md)（D）：单写者 SessionHandle、create/open/stat/list、flush 与错误类型。
+- [`session/session-persistence-jsonl`](../../../packages/session/session-persistence-jsonl/README.md)（P）：JSONL 代际、读写句柄、live 事件路由、write-behind 与文件租约。
 - [`session/session-checkpoint-policy`](../../../packages/session/session-checkpoint-policy/README.md)（X）：模型请求、pre-step 和顶层工具前等待 durability。
+
+## Session 格式
+
+- [`session/session-format`](../../../packages/session/session-format/README.md)（S）：逻辑格式解码、恢复与相邻迁移链。
+- [`session/session-format-catalog`](../../../packages/session/session-format-catalog/README.md)（S）：当前版本与受支持历史代际的静态目录。
+- [`session/session-log-deepseek`](../../../packages/session/session-log-deepseek/README.md)（X）：安装当前产品认识的 Session 事件定义与校验。
 
 ## Projection、Stats、Title 与 Telemetry
 

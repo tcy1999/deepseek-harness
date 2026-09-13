@@ -6,6 +6,12 @@
 
 本地组合通常是 `fs-local + subprocess-local + sandbox-local/policy + bash-local`；E2B 组合替换 FS 和 subprocess，使高层工具保持不变。设计重点不是统一所有 API，而是让共享环境身份的能力一起替换。
 
+```text
+模型工具 → Shell / Terminal / LSP → Subprocess Provider → 执行环境
+模型工具 → FS Provider ──────────────────────────────→ 同一文件视图
+                                      Sandbox 限制子进程权限
+```
+
 ## Filesystem
 
 [`dsh-fs`](../../packages/fs/fs/src/index.ts)定义文件操作和 `fs/*` policy events。`fs-local` 实现本地访问，`fs-sandbox` 将路径映射到 sandbox 能力，`fs-observation-policy` 追踪模型已经观察过的内容，防止编辑工具基于未读旧状态写入。`tool-fs`、`tool-fs-search` 和 `tool-str-replace-editor` 是不同交互粒度的 Consumer。

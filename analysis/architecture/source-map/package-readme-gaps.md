@@ -9,7 +9,7 @@
 | `core/agent` | `AgentHandle.dispose()` 是创建者能力；factory provider 同时是结构 owner，Registry 查询到的裸 Agent 不能销毁自身 | [`AgentHandle`](../../../packages/core/agent/src/index.ts) |
 | `core/agent-loop` | waking input 在已 abort activity 后会改投 next-turn；`whenIdle()` 防止完成回调立即启动下一 activity 时提前返回 | [`agent.ts`](../../../packages/core/agent-loop/src/agent.ts) |
 | `core/session` | Store 有意不实现 persistence；Agent 需要按顺序创建和释放 Session 时使用 prepare/enter/announce，而不是让普通 fiber 直接创建 | [`SessionStore`](../../../packages/core/session/src/index.ts) |
-| `core/system-prompt` | 同名 scoped `deployment:persona` 是替换槽位；tool order 的 `<unlisted-tools>` 同时是完整性与稳定排序机制 | [`system-prompt`](../../../packages/core/system-prompt/src/index.ts) |
+| `core/system-prompt` | 同名 scoped `deployment:persona-prefix` / `deployment:persona-suffix` 是替换槽位；tool order 的 `<unlisted-tools>` 同时是完整性与稳定排序机制 | [`system-prompt`](../../../packages/core/system-prompt/src/index.ts) |
 | `core/tools` | code-mode collapse 在 executor 再次强制，且在审批前拒绝；已启动 body 取消后仍 drain | [`ToolRuntime.execute`](../../../packages/core/tools/src/index.ts) |
 | `llm/llm` | Prepared call 捕获 adapter registration 并单次使用，避免热替换造成 metadata/执行错配 | [`PreparedLlmCall`](../../../packages/llm/llm/src/index.ts) |
 
@@ -28,7 +28,7 @@
 
 | Package | 容易遗漏的事实 | 依据 |
 |---|---|---|
-| `session-persistence` | write-behind 允许内存领先磁盘，durability 由 checkpoint 边界而非每次 append 定义 | [`coordinator.ts`](../../../packages/session/session-persistence/src/coordinator.ts) |
+| `session-persistence` | write-behind 允许内存领先磁盘，durability 由 checkpoint 边界而非每次 append 定义 | [`storage.ts`](../../../packages/session/session-persistence-jsonl/src/storage.ts) |
 | `session-checkpoint-policy` | 覆盖模型请求、pre-step 与顶层 tool；nested dispatch 复用外层 checkpoint | [`tests`](../../../packages/session/session-checkpoint-policy/tests/session-checkpoint-policy.spec.ts) |
 | `session-title` | 标题以 last-wins Session Event 表达，显式刷新、fallback 和 service disposal 竞争由 coordinator 处理 | [`service-contracts.spec.ts`](../../../packages/session/session-title/tests/service-contracts.spec.ts) |
 | `subagent/*` | In-process Provider 仍通过 Agent scope/preset 隔离；delegation depth 是 durable metadata，不只是 prompt 提醒 | [`subagent`](../../../packages/subagent/subagent/src/index.ts) |

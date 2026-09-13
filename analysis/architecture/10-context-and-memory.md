@@ -10,6 +10,12 @@ Harness 将模型输入相关状态拆为四类：静态或动态 prompt 内容�
 
 动态 context 使用完整快照而非增量 patch。内容变化时，新快照以追加消息写入，并在文本中声明更早快照不再适用；旧快照不会被这次追加物理覆盖，所以在 compaction 移除前仍占用历史 token。恢复逻辑从当前 surface 找到最后一个保留快照并与新装配结果比较，避免依赖一串可能缺失的增量 patch。
 
+```text
+指令文件 / 时间 / 会话引用 → runtime context 完整快照
+  → 与当前 Session surface 中的快照比较
+  → 内容变化 → agent/pre-step 接纳 → user/message → 下一次模型请求
+```
+
 ## Skill
 
 `skill/skill` 是 provider registry，`skill-filesystem` 从文件目录发现和加载 skill，`tool-skill` 给模型目录/加载操作，`skill-badge` 提供展示元数据。Skill 指令并非启动时全部塞进 prompt：先暴露摘要目录，需要时再加载正文，降低常驻 token。

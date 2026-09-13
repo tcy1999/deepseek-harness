@@ -1,22 +1,45 @@
 # Web Host 与 Client 架构
 
-## Host/Browser 分离
+## 从服务端插件到浏览器插件
 
-Host 侧提供 webserver、API proxy、静态资源、目录选择和 plugin inventory；browser 侧通过 connection/runtime 接入 RPC，再由大量 `ui-*` 插件贡献领域 UI。`client/web` 与 `web-react` 是装配外壳，不拥有 Agent 业务。组合由 `dsh-web-app` bundle 决定。
+Host 提供 Web 服务、静态资源和领域 API。`dsh-web-app` 组合包同时选择 Host 与 Client 插件，浏览器端由 [`client/web`](../../packages/client/web/src/index.ts)装配 Cordis 上下文。UI 插件通过 Remote 调用服务端，不加载 Agent Loop 或 Node 文件系统实现。
 
-这样 CLI/headless 不需要浏览器代码，UI 模块也能随插件安装和卸载。代价是一个完整功能通常要同时提供 host 服务、远程接口、客户端对象和 renderer。
+```text
+web-app bundle → Host 服务 + Client 插件图
+  Host：Web server / Gateway / 领域 controller / Agent / Session
+  Client：Connection / Remote controllers / Session store / UI renderers
+```
 
-## Client Runtime 与 Modules
+桌面应用使用同一组业务服务和客户端插件，但由 Electron 通过私有 Desktop Host、字节管道与 `dsh-app://` 传递调用和资源。它不需要本机 HTTP 或 WebSocket 监听端口，启动过程见[组合与启动](03-composition-and-boot.md)。
 
-`client/runtime` 提供浏览器中的 Cordis context，并跟踪远程对象何时创建和失效；`connection` 管理传输、重连和未完成请求；`modules` 注册和查找客户端模块；`hmr` 更新浏览器插件。`locale`、`theme`、`primitives` 和 `slots` 提供多个页面共用的基础功能。
+## Client 状态与渲染职责
 
-UI 插件向 slot 注册 renderer 或 action，并在 fiber dispose 时撤销。页面不是一个中央 switch 列出所有领域组件；conversation、tool、trajectory、settings 等插件按 capability 自注册。这样第三方功能可以增加 UI，而无需修改单体前端入口。
+[`connection`](../../packages/client/connection/src/index.ts)负责远程传输；[`api/remotes` 的 Client 入口](../../packages/api/remotes/src/client/index.ts)安装领域控制器；[`client/store`](../../packages/client/store/src/index.ts)提供不依赖 React 的可观察状态；[`ui-renderer`](../../packages/client/ui-renderer/src/index.ts)将状态接到 React。`modules`、`hmr`、`locale`、主题和 slots 分别负责模块发现、热更新、语言与可撤销 UI 贡献。
 
-## Session 驱动的 UI
+UI 插件在自身 fiber 中注册 renderer 或 action，卸载时撤销。Conversation、工具、设置和轨迹分别贡献内容，不由一个中央 switch 枚举所有业务组件。
 
-Conversation 和 trajectory 根据 Session Event 或服务端计算结果，显示 user、assistant、tool、plan、goal、subagent 等节点。原始 chunk 用于流式显示；提交后的 message/result 用于刷新和恢复。UI 可以暂时显示“正在发送”等本地状态，但服务端事件到达后必须以服务端记录为准，否则刷新页面会看到不同历史。
+## Session 历史与实时输出如何到达 UI
 
-`ConversationNodeDefinition` 与 keyed renderer 把新 durable node 类型接入客户端。节点 identity 来自事件 seq/关系，而不是数组 index，支持增量更新和 fork。Tool call presentation 使用 `generic`、`terminal`、`diff` card；完成结果还可使用 `read`、`search`、`web` card。Client 按服务端定义的 tagged intent 选择 renderer，未知或畸形 intent 才退回扁平文本，不解析自由文本猜类型。
+[`Session controller.follow()`](../../packages/api/session-controller/src/history.ts)先发送历史快照、游标和投影状态，再发送游标后的持久事件；客户端请求实时输出时，还会接收当前 assistant stream 的快照和后续瞬态帧。Client Session store 校验顺序并更新视图，Conversation 将其转换为节点，renderer 负责绘制。
+
+```mermaid
+sequenceDiagram
+  participant UI as Client Session store
+  participant API as Session controller
+  participant Log as Session Log
+  participant Agent as Agent Loop
+  UI->>API: follow(session, cursor, assistantStream)
+  API-->>UI: snapshot：历史 + projections + 可选实时流
+  Agent-->>API: assistant-stream chunk
+  API-->>UI: 瞬态帧，更新当前输出
+  Agent->>Log: assistant/message 或 assistant/attempt
+  Log-->>API: 已提交事件
+  API-->>UI: durable event，推进日志游标
+```
+
+实时帧不占用 Session 日志序号。重新加载依靠已提交的 `assistant/message` 或 `assistant/attempt` 中嵌入的完整流；结算前发生进程丢失，不能恢复仅在界面显示过的 chunk。输入区的“正在发送”等临时状态也不能覆盖服务端记录。
+
+`ConversationNodeDefinition` 与 keyed renderer 接入 user、assistant、tool、plan、goal 和 subagent 等节点。工具卡片按持久化的 tagged presentation metadata 渲染：call 支持 `generic`、`terminal`、`diff`，result 还支持 `read`、`search`、`web`；UI 不从结果文本猜卡片类型。
 
 ## Settings 与 Host 能力
 

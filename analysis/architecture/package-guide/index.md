@@ -1,13 +1,13 @@
 # Package 指南
 
-本指南覆盖当前 `packages/*/*` 下的全部 package。条目按架构职责分组，不复制 README 的完整 API；每个名称链接到包目录中的 README，括号内给出角色，后面给出源码关注点。
+本指南选择主要运行链涉及的 package，完整清单见[仓库包索引](../../../packages/README.md)。条目按架构职责分组，不复制 README 的完整 API；每个名称链接到包目录中的 README，括号内给出角色，后面给出源码关注点。
 
 - [核心运行时](core.md)：`core`、LLM、Typert 与 runtime diagnostics。
 - [执行能力](runtime-capabilities.md)：FS、进程、Shell、Terminal、Sandbox、LSP、Web、代码执行、spill 和 E2B。
 - [Agent 能力](agent-capabilities.md)：上下文、技能、压缩、目标、计划、任务、工作流、交互和扩展。
 - [Session 与存储](session-and-storage.md)：持久化、投影、查询、附件、设置、凭据、storage 和 workspace。
 - [集成与协议](integration-and-protocols.md)：boot、bundle、API、SDK、ACP、hooks、MCP、subagent 和 examples。
-- [Web 与 Client](web-and-client.md)：host 与全部浏览器插件。
+- [Web 与 Client](web-and-client.md)：Host、Client 状态与主要浏览器插件。
 - [支持与工具库](support-and-utilities.md)：测试支撑和零依赖 util。
 
 ## 角色缩写

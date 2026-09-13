@@ -20,9 +20,9 @@ Sandbox 约束子进程 OS 权限，FS provider/policy 约束 API 文件访问�
 
 ## 运行时检查事件和状态的关系
 
-每个 package 提供 `./invariant`，由 diagnostics runtime 安装。有效 invariant 检查 owned relationship，例如：loop-built request 等于 Session 派生消息；tool execution 阶段有序；turn/step 嵌套合法；registry notification 与数据一致。纯示例或方法存在性不是运行 invariant。
+只有存在可独立观察、可能发生分歧的运行关系时，package 才提供 `./invariant`，由 diagnostics runtime 安装。有效 invariant 检查 owned relationship，例如：loop-built request 等于 Session 派生消息；tool execution 阶段有序；turn/step 嵌套合法；registry notification 与数据一致。纯示例或方法存在性不是运行 invariant。
 
-Invariant failure 说明系统内部契约已被破坏，应尽早暴露而非降级。Package 没有合理运行关系时必须给出 package-specific 空说明，防止形式化占位。
+Invariant failure 说明系统内部契约已被破坏，应尽早暴露而非降级。没有适合检查的运行关系时，包不发布 companion，并在 README 说明原因；空安装器和只检查服务存在的占位代码不构成有效 invariant。
 
 ## 创建、取消和释放规则
 

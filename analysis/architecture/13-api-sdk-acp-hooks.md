@@ -12,9 +12,19 @@ Web、JSON-RPC、ACP 和 hook bridge 不各自实现 Agent。它们解析外部�
 
 ## API Gateway 与 Remotes
 
-`api/gateway` 组装 BFF 和 RPC dispatch，`api/remotes` 保存生成或手写的远程接口。Gateway 只负责传输，不保存业务状态；它通过 Typert registry 查找服务和对象，并把内部事件转换为客户端订阅。Web host 的 `apiproxy` 再把浏览器连接接入 gateway。
+[`api/gateway`](../../packages/api/gateway/src/index.ts)根据 Typert registry 分派 Remote 方法，并拥有实时流的传输和复用。Session、Workspace、Settings、Workspace Files controller 各自负责业务操作；[`api/remotes`](../../packages/api/remotes/src/index.ts)把应用允许转发的 Cordis 事件接入 gateway，其 Client 入口组装对应控制器。
+
+```text
+浏览器 Remote 调用 → Connection / Gateway → 领域 controller → Host service
+Host 事件 → api/remotes 的允许列表 → Gateway → Client listeners
+Session 历史与实时输出 → Session controller.follow() → Client Session store
+```
+
+Session 的 `follow()` 有专门的快照、游标和实时流语义，不能用通用事件转发代替持久历史同步。桌面应用复用这些服务，传输由私有 Desktop Host 的字节管道和 `dsh-app://` 协议承载。
 
 ## SDK
+
+TypeScript 与 Python SDK 都通过 `dsh --profile sdk` 启动运行时，极简组合选择 `sdk-minimal`。自定义组装由 profile 与有序 patch 表达；应用代码不自行拼接另一套启动树。
 
 `sdk/protocol` 定义换行分隔 JSON-RPC 消息与固定 wire 类型，`sdk/server` 把 Agent runtime 发布为 stdio server，`sdk/client` 提供 TypeScript client。Server 只分派 `initialize`、`session/prompt` 和 `shutdown`，按调用方提供的 `sessionId` 获取或创建一个 owned Agent，并向连接无筛选发送当前 Context 的全部 `session.event`、`session.status` 与本地 subagent 通知；它不是 Typert object lookup 或授权层。
 
