@@ -1,0 +1,172 @@
+analysis/architecture/03-composition-and-boot.md
+  s_878c3982df8748::t_440f575987951c 21
+  s_b2a0e99f7cee70::t_0db31ecfbc721a 17,29
+  s_4b66d67c411024::t_df73208b05ebf3 1-16,18-20,22-28
+analysis/architecture/05-session-event-log.md
+  s_b2a0e99f7cee70::t_aa2fafc7219f36 59,63,67
+  s_b2a0e99f7cee70::t_0d617c43ab4a8a 3,7,33,35,38-42,44-53,56,61,77
+  s_b2a0e99f7cee70::t_c62fc2f40b5f3d 9-32
+  s_b2a0e99f7cee70::t_3ce5d37dfe19e9 37,54-55
+  s_b2a0e99f7cee70::t_b66390de7e0add 5-6,8
+  s_878c3982df8748::t_ea5401f46c6157 43
+  s_b2a0e99f7cee70::t_d12894774d2e8f 57,79
+  s_4b66d67c411024::t_df73208b05ebf3 1-2,4,34,36,58,60,62,64-66,68-76,78,80-85
+analysis/architecture/09-execution-environment.md
+  s_4b66d67c411024::t_cf9471147469e6 1-2,4,6-18,20-28,30-39
+  s_b2a0e99f7cee70::t_0db31ecfbc721a 3,5
+  s_b2a0e99f7cee70::t_a71e707461e46f 19,29
+analysis/architecture/package-guide/index.md
+  s_4b66d67c411024::t_c1ee22cade8e63 1-23
+analysis/architecture/package-guide/web-and-client.md
+  s_878c3982df8748::t_ea5401f46c6157 34
+  s_4b66d67c411024::t_3fd170e5529150 1-33,35-63
+analysis/architecture/package-guide/agent-capabilities.md
+  s_4b66d67c411024::t_d7b949c7b6656d 1-67
+analysis/architecture/package-guide/runtime-capabilities.md
+  s_4b66d67c411024::t_d7b949c7b6656d 1-58
+analysis/architecture/package-guide/integration-and-protocols.md
+  s_4b66d67c411024::t_3fd170e5529150 1-16,18-47
+  s_b2a0e99f7cee70::t_16dc54b241e6df 17
+analysis/architecture/06-prompt-llm-streaming.md
+  s_878c3982df8748::t_440f575987951c 9
+  s_b2a0e99f7cee70::t_d12894774d2e8f 23
+  s_b2a0e99f7cee70::t_a71e707461e46f 3,27
+  s_4b66d67c411024::t_df73208b05ebf3 1-2,4-8,10-22,24-26,28-31
+analysis/architecture/index.md
+  s_85febfb32b6f4b::t_34cc21c1de2302 25
+  s_b2a0e99f7cee70::t_f59098194c8d81 9,11,13-16,19,21-22,28,37-45
+  s_b2a0e99f7cee70::t_3a34611cc23b85 3,7,20,33,35
+  s_878c3982df8748::t_440f575987951c 17
+  h_ebc82c011e194d 5
+  s_4b66d67c411024::t_c1ee22cade8e63 1-2,4,6,8,10,12,18,23-24,26-27,29-32,34,36
+analysis/architecture/13-api-sdk-acp-hooks.md
+  s_4b66d67c411024::t_cf9471147469e6 1-4,6-10,12-14,16-18,20,23-24,26,28-30,32-34
+  s_b2a0e99f7cee70::t_b9cc893058d89d 5,15,31,35
+  s_878c3982df8748::t_440f575987951c 11,19,21-22,25,27
+analysis/architecture/08-capability-seams.md
+  s_878c3982df8748::t_5a07f91d5104c9 11
+  s_4b66d67c411024::t_df73208b05ebf3 2,4,6-10,12,14,16,18-20,22-24,26-30,32-33
+  s_b2a0e99f7cee70::t_04e85da012b18e 1,3,5,13,15,17,21,25,31,34
+analysis/architecture/17-design-tradeoffs.md
+  s_b2a0e99f7cee70::t_1c65a5fb9d9be8 9,11,23,29,35
+  s_4b66d67c411024::t_cf9471147469e6 1-2,4,6-8,10,12-14,16,18-22,24-28,30-32,34,36-38,40-46,48-50,52
+  s_b2a0e99f7cee70::t_8ec544d97e08ab 3,5,15,17,33,39,51
+  s_878c3982df8748::t_440f575987951c 47,53
+analysis/architecture/package-guide/core.md
+  s_4b66d67c411024::t_d7b949c7b6656d 1-31
+analysis/architecture/14-web-client-architecture.md
+  s_4b66d67c411024::t_cf9471147469e6 1-6,8-10,12-16,18,20-22,24-26,28-30
+  s_878c3982df8748::t_440f575987951c 19
+  s_b2a0e99f7cee70::t_b9cc893058d89d 7,11,23,31
+  s_b2a0e99f7cee70::t_1be9009caf9d24 17,27
+analysis/architecture/package-guide/support-and-utilities.md
+  s_4b66d67c411024::t_3fd170e5529150 1-22
+analysis/architecture/visualizations/deepseek-harness-architecture-flow.html
+  s_85febfb32b6f4b::t_06c63a12fc4d28 1-1382
+analysis/architecture/07-tools-and-execution.md
+  s_878c3982df8748::t_440f575987951c 7,9-10,43-44,46
+  s_b2a0e99f7cee70::t_a71e707461e46f 32,36
+  s_b2a0e99f7cee70::t_d12894774d2e8f 1,3,34,42
+  s_4b66d67c411024::t_df73208b05ebf3 2,4-6,8,11-31,33,35,37-41,45
+analysis/architecture/11-subagents-jobs-workflows.md
+  s_b2a0e99f7cee70::t_a71e707461e46f 3,41,45,49
+  s_878c3982df8748::t_ea5401f46c6157 27,29
+  s_4b66d67c411024::t_cf9471147469e6 1-2,4-6,8-18,20-26,28,38-40,42,44,46-48
+  s_878c3982df8748::t_440f575987951c 30-37
+  s_b2a0e99f7cee70::t_d12894774d2e8f 7,19,43
+analysis/architecture/12-persistence-and-projections.md
+  s_b2a0e99f7cee70::t_16dc54b241e6df 17
+  s_4b66d67c411024::t_cf9471147469e6 2,4,8,10,14,16,18-20,22,32,34,36,38-40,42-44,46,48
+  s_878c3982df8748::t_440f575987951c 21,23-24,26-31
+  s_b2a0e99f7cee70::t_d12894774d2e8f 13,47
+  s_b2a0e99f7cee70::t_0db31ecfbc721a 15,25,37,41,45
+  s_b2a0e99f7cee70::t_1be9009caf9d24 1,3,5-7,9,11-12,33,35,49
+analysis/architecture/source-map/critical-paths.md
+  s_b2a0e99f7cee70::t_16dc54b241e6df 42
+  s_878c3982df8748::t_440f575987951c 57
+  s_4b66d67c411024::t_3fd170e5529150 1-41,43-56,58-60
+analysis/architecture/package-guide/session-and-storage.md
+  s_4b66d67c411024::t_d7b949c7b6656d 1-47
+analysis/architecture/10-context-and-memory.md
+  s_b2a0e99f7cee70::t_04e85da012b18e 5,9,21,29,37
+  s_4b66d67c411024::t_cf9471147469e6 1-4,6-8,10,12-20,22-28,30-36
+  s_878c3982df8748::t_440f575987951c 11
+analysis/architecture/source-map/package-readme-gaps.md
+  s_4b66d67c411024::t_3fd170e5529150 1-10,12-34,38-52
+  s_878c3982df8748::t_440f575987951c 35-37
+  s_b2a0e99f7cee70::t_16dc54b241e6df 11
+analysis/architecture/16-testing-and-build-design.md
+  s_b2a0e99f7cee70::t_d12894774d2e8f 38
+  s_b2a0e99f7cee70::t_1c65a5fb9d9be8 7,13-16,20,24,28,36
+  s_4b66d67c411024::t_cf9471147469e6 2,4,6,8-12,17-19,21-23,25,27,29,31,33-35,37,39
+  s_878c3982df8748::t_5a07f91d5104c9 40
+  s_b2a0e99f7cee70::t_1be9009caf9d24 1,3,5,26,30,32
+analysis/architecture/15-safety-and-correctness.md
+  s_878c3982df8748::t_440f575987951c 11
+  s_4b66d67c411024::t_cf9471147469e6 1-2,4,6-10,12-18,20,22-26,28,30-42
+  s_b2a0e99f7cee70::t_1be9009caf9d24 27,29
+  s_b2a0e99f7cee70::t_d12894774d2e8f 21
+  s_b2a0e99f7cee70::t_0db31ecfbc721a 3,5
+  s_b2a0e99f7cee70::t_b9cc893058d89d 19,43
+analysis/architecture/04-agent-runtime.md
+  s_b2a0e99f7cee70::t_3d589dc88ca71b 35,37,43,51-52,60-61
+  s_4b66d67c411024::t_df73208b05ebf3 1-20,22-24,75-80,82-88
+  s_b2a0e99f7cee70::t_04e85da012b18e 81,89
+  s_b2a0e99f7cee70::t_16dc54b241e6df 21
+  s_b2a0e99f7cee70::t_c62fc2f40b5f3d 25-34,36,38-42,44-50,53-59,62-74
+analysis/architecture/02-cordis-plugin-model.md
+  s_b2a0e99f7cee70::t_0db31ecfbc721a 3,5,9,11,23
+  s_b2a0e99f7cee70::t_aa2fafc7219f36 13,31,33,35
+  s_4b66d67c411024::t_df73208b05ebf3 1-2,4,6-8,10,12,14-22,24-30,32,34
+analysis/architecture/01-system-overview.md
+  s_b2a0e99f7cee70::t_3a34611cc23b85 40,42,50,52,54,64,72
+  s_878c3982df8748::t_5a07f91d5104c9 48,70
+  s_4b66d67c411024::t_df73208b05ebf3 1-2,34-39,41,43,49,51,53,55-59,61-63,65-66,68,71
+  s_b2a0e99f7cee70::t_c62fc2f40b5f3d 3-33
+  s_b2a0e99f7cee70::t_aa2fafc7219f36 44-47,60,67,69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.44-trip",
+  "base_commit_sha": "6d154692fcea8ffae02313c4a39f3c1fd83a187d",
+  "prompts": {},
+  "humans": {
+    "h_ebc82c011e194d": {
+      "author": "chenyun.tao <chenyuntao@trip.com>"
+    }
+  },
+  "sessions": {
+    "s_4b66d67c411024": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a00f05-0a8e-77e2-a2f1-755d97a9e7c1",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "tcy1999 <tcy9902@outlook.com>"
+    },
+    "s_85febfb32b6f4b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a01d2e-9f86-71e2-98ee-400ea3863d8d",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "tcy1999 <tcy9902@outlook.com>"
+    },
+    "s_878c3982df8748": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a01d29-accf-7ad0-bba9-60bfae9c2108",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "tcy1999 <tcy9902@outlook.com>"
+    },
+    "s_b2a0e99f7cee70": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a019d7-e954-7e13-9ea1-030ffb188043",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "tcy1999 <tcy9902@outlook.com>"
+    }
+  }
+}
