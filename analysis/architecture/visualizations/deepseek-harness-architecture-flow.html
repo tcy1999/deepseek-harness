@@ -1,0 +1,1382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>DeepSeek Harness 系统架构与请求流程</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+</head>
+<body>
+<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="DeepSeek Harness 系统架构与请求流程" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;DeepSeek Harness 系统架构与请求流程&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: var(--border-radius-lg, 12.5px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: superellipse(1.5);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card, .progress) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress {
+  display: flex;
+  height: 6px;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+}
+
+.progress-bar {
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--viz-series-1);
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: superellipse(1.5);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+  [aria-pressed=&quot;true&quot;],
+  [aria-selected=&quot;true&quot;],
+  .is-selected
+) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: 16px !important;
+  height: 16px !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;dsh-architecture-flow&quot; class=&quot;viz-root&quot;&gt;
+  &lt;style&gt;
+    #dsh-architecture-flow {
+      --muted-bg: color-mix(in srgb, var(--foreground) 5%, transparent);
+      --blue-bg: color-mix(in srgb, var(--blue) 12%, transparent);
+      --green-bg: color-mix(in srgb, var(--green) 12%, transparent);
+      --orange-bg: color-mix(in srgb, var(--orange) 13%, transparent);
+      --purple-bg: color-mix(in srgb, var(--purple) 12%, transparent);
+      --red-bg: color-mix(in srgb, var(--red) 10%, transparent);
+      color: var(--foreground);
+      font-family: var(--font-sans);
+      padding: 4px;
+    }
+    #dsh-architecture-flow * { box-sizing: border-box; }
+    #dsh-architecture-flow .header { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    #dsh-architecture-flow h1 { font-size: 24px; line-height: 1.2; margin: 0 0 5px; letter-spacing: -.02em; }
+    #dsh-architecture-flow .subtitle { color: var(--muted-foreground); font-size: 13px; }
+    #dsh-architecture-flow .tabs { display: flex; gap: 6px; flex: 0 0 auto; }
+    #dsh-architecture-flow .tab { border: 1px solid var(--border); background: transparent; color: var(--muted-foreground); border-radius: 8px; padding: 7px 12px; cursor: pointer; font: inherit; font-size: 13px; }
+    #dsh-architecture-flow .tab:hover { background: var(--muted-bg); color: var(--foreground); }
+    #dsh-architecture-flow .tab.active { background: var(--foreground); border-color: var(--foreground); color: var(--background); }
+    #dsh-architecture-flow .panel[hidden] { display: none; }
+    #dsh-architecture-flow .section-label { color: var(--muted-foreground); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 8px; }
+    #dsh-architecture-flow .node { border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; background: var(--card); min-width: 0; }
+    #dsh-architecture-flow .node strong { display: block; font-size: 13px; margin-bottom: 3px; }
+    #dsh-architecture-flow .node span { color: var(--muted-foreground); font-size: 11px; line-height: 1.35; display: block; }
+    #dsh-architecture-flow .blue { background: var(--blue-bg); border-color: color-mix(in srgb, var(--blue) 45%, var(--border)); }
+    #dsh-architecture-flow .green { background: var(--green-bg); border-color: color-mix(in srgb, var(--green) 45%, var(--border)); }
+    #dsh-architecture-flow .orange { background: var(--orange-bg); border-color: color-mix(in srgb, var(--orange) 45%, var(--border)); }
+    #dsh-architecture-flow .purple { background: var(--purple-bg); border-color: color-mix(in srgb, var(--purple) 45%, var(--border)); }
+    #dsh-architecture-flow .red { background: var(--red-bg); border-color: color-mix(in srgb, var(--red) 40%, var(--border)); }
+    #dsh-architecture-flow .architecture { display: grid; grid-template-columns: minmax(150px, .78fr) 34px minmax(460px, 2.25fr) 34px minmax(180px, .9fr); align-items: stretch; gap: 10px; }
+    #dsh-architecture-flow .column { display: flex; flex-direction: column; gap: 9px; }
+    #dsh-architecture-flow .arrow-column { display: flex; align-items: center; justify-content: center; color: var(--muted-foreground); font-size: 24px; }
+    #dsh-architecture-flow .profile-stack { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+    #dsh-architecture-flow .profile-final { border: 1px solid color-mix(in srgb, var(--purple) 55%, var(--border)); background: var(--purple-bg); border-radius: 10px; padding: 12px; text-align: center; }
+    #dsh-architecture-flow .profile-final strong { display: block; font-size: 14px; }
+    #dsh-architecture-flow .profile-final span { display: block; margin-top: 4px; color: var(--muted-foreground); font-size: 11px; }
+    #dsh-architecture-flow .down-arrow { color: var(--muted-foreground); text-align: center; line-height: 22px; }
+    #dsh-architecture-flow .core { border: 1px solid var(--border); border-radius: 14px; padding: 12px; background: var(--muted-bg); }
+    #dsh-architecture-flow .core-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    #dsh-architecture-flow .core-grid .wide { grid-column: span 2; }
+    #dsh-architecture-flow .session-flow { margin-top: 10px; display: grid; grid-template-columns: 1fr 28px 1fr 28px 1fr; align-items: center; gap: 5px; }
+    #dsh-architecture-flow .mini { padding: 8px; border-radius: 8px; border: 1px dashed var(--border); text-align: center; font-size: 11px; color: var(--muted-foreground); }
+    #dsh-architecture-flow .mini-arrow { text-align: center; color: var(--muted-foreground); }
+    #dsh-architecture-flow .note { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    #dsh-architecture-flow .callout { border-left: 3px solid var(--blue); padding: 7px 10px; background: var(--blue-bg); border-radius: 0 8px 8px 0; font-size: 12px; line-height: 1.5; }
+    #dsh-architecture-flow .callout b { color: var(--foreground); }
+    #dsh-architecture-flow .callout span { color: var(--muted-foreground); }
+
+    #dsh-architecture-flow .sequence-wrap { overflow-x: auto; padding-bottom: 6px; }
+    #dsh-architecture-flow .sequence { min-width: 1000px; position: relative; }
+    #dsh-architecture-flow .lane-heads, #dsh-architecture-flow .seq-row { display: grid; grid-template-columns: 70px repeat(7, minmax(116px, 1fr)); gap: 8px; }
+    #dsh-architecture-flow .lane-heads { position: sticky; top: 0; z-index: 4; background: var(--background); padding-bottom: 8px; }
+    #dsh-architecture-flow .lane-head { border: 1px solid var(--border); border-radius: 9px; text-align: center; padding: 8px 5px; font-size: 11px; font-weight: 700; background: var(--card); }
+    #dsh-architecture-flow .seq-body { position: relative; }
+    #dsh-architecture-flow .seq-body::before { content: &quot;&quot;; position: absolute; inset: 0 0 0 78px; background: repeating-linear-gradient(to right, transparent 0, transparent calc((100% / 7) - 1px), var(--border) calc((100% / 7) - 1px), var(--border) calc(100% / 7)); opacity: .45; pointer-events: none; }
+    #dsh-architecture-flow .phase { position: relative; border-radius: 12px; padding: 12px 8px 10px; margin-bottom: 8px; }
+    #dsh-architecture-flow .phase.boot { background: var(--blue-bg); }
+    #dsh-architecture-flow .phase.infer { background: var(--orange-bg); }
+    #dsh-architecture-flow .phase.tools { background: var(--purple-bg); }
+    #dsh-architecture-flow .phase.finish { background: var(--green-bg); }
+    #dsh-architecture-flow .phase.recovery { background: var(--red-bg); }
+    #dsh-architecture-flow .phase-title { display: grid; grid-template-columns: 70px 1fr; gap: 8px; margin-bottom: 8px; position: relative; z-index: 1; }
+    #dsh-architecture-flow .phase-title b { font-size: 11px; letter-spacing: .05em; }
+    #dsh-architecture-flow .phase-title span { font-size: 11px; color: var(--muted-foreground); }
+    #dsh-architecture-flow .seq-row { min-height: 42px; align-items: center; position: relative; z-index: 1; }
+    #dsh-architecture-flow .step-no { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 1px solid color-mix(in srgb, var(--orange) 55%, var(--border)); font-size: 10px; font-weight: 800; justify-self: center; }
+    #dsh-architecture-flow .event { position: relative; min-height: 30px; padding: 6px 9px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); font-size: 11px; line-height: 1.35; }
+    #dsh-architecture-flow .event::after { content: &quot;→&quot;; position: absolute; right: -20px; top: 50%; transform: translateY(-50%); color: var(--muted-foreground); font-size: 16px; }
+    #dsh-architecture-flow .event.back::after { content: &quot;←&quot;; left: -20px; right: auto; }
+    #dsh-architecture-flow .event.end::after { display: none; }
+    #dsh-architecture-flow .event small { display: block; color: var(--muted-foreground); margin-top: 2px; }
+    #dsh-architecture-flow .loop-note { grid-column: 7 / 9; border: 1px dashed color-mix(in srgb, var(--purple) 60%, var(--border)); color: var(--muted-foreground); padding: 7px 9px; border-radius: 8px; font-size: 11px; }
+    #dsh-architecture-flow .legend { margin-top: 10px; color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
+    @media (max-width: 760px) {
+      #dsh-architecture-flow .header { align-items: flex-start; flex-direction: column; }
+      #dsh-architecture-flow h1 { font-size: 20px; }
+      #dsh-architecture-flow .architecture { grid-template-columns: 1fr; }
+      #dsh-architecture-flow .arrow-column { transform: rotate(90deg); height: 18px; }
+      #dsh-architecture-flow .core-grid { grid-template-columns: 1fr 1fr; }
+      #dsh-architecture-flow .core-grid .wide { grid-column: span 2; }
+      #dsh-architecture-flow .note { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 420px) {
+      #dsh-architecture-flow .profile-stack, #dsh-architecture-flow .core-grid { grid-template-columns: 1fr; }
+      #dsh-architecture-flow .core-grid .wide { grid-column: span 1; }
+      #dsh-architecture-flow .session-flow { grid-template-columns: 1fr; }
+      #dsh-architecture-flow .mini-arrow { transform: rotate(90deg); }
+    }
+  &lt;/style&gt;
+
+  &lt;div class=&quot;header&quot;&gt;
+    &lt;div&gt;
+      &lt;h1&gt;DeepSeek Harness：系统结构与一次请求&lt;/h1&gt;
+      &lt;div class=&quot;subtitle&quot;&gt;Profile 负责组装；Session Log 记录事实；Agent Loop 驱动模型与工具。&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;tabs&quot; role=&quot;tablist&quot; aria-label=&quot;切换图表&quot;&gt;
+      &lt;button class=&quot;tab active&quot; role=&quot;tab&quot; aria-selected=&quot;true&quot; aria-controls=&quot;arch-panel&quot; id=&quot;arch-tab&quot;&gt;系统架构&lt;/button&gt;
+      &lt;button class=&quot;tab&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot; aria-controls=&quot;seq-panel&quot; id=&quot;seq-tab&quot;&gt;一次请求&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;section id=&quot;arch-panel&quot; class=&quot;panel&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;arch-tab&quot;&gt;
+    &lt;div class=&quot;architecture&quot;&gt;
+      &lt;div class=&quot;column&quot;&gt;
+        &lt;div class=&quot;section-label&quot;&gt;入口&lt;/div&gt;
+        &lt;div class=&quot;node blue&quot;&gt;&lt;strong&gt;CLI / Headless&lt;/strong&gt;&lt;span&gt;启动任务，输出最终结果&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;node blue&quot;&gt;&lt;strong&gt;API / SDK / ACP&lt;/strong&gt;&lt;span&gt;远程或自动化调用&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;node blue&quot;&gt;&lt;strong&gt;Web UI&lt;/strong&gt;&lt;span&gt;提交输入，读取状态与事件&lt;/span&gt;&lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;arrow-column&quot; aria-hidden=&quot;true&quot;&gt;→&lt;/div&gt;
+
+      &lt;div class=&quot;column&quot;&gt;
+        &lt;div class=&quot;section-label&quot;&gt;组装与运行时&lt;/div&gt;
+        &lt;div class=&quot;profile-stack&quot;&gt;
+          &lt;div class=&quot;node purple&quot;&gt;&lt;strong&gt;Bundle&lt;/strong&gt;&lt;span&gt;可复用的一组配置&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;node purple&quot;&gt;&lt;strong&gt;Bundle&lt;/strong&gt;&lt;span&gt;例如 web / headless&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;node purple&quot;&gt;&lt;strong&gt;Patch&lt;/strong&gt;&lt;span&gt;本次运行的覆盖项&lt;/span&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;down-arrow&quot; aria-hidden=&quot;true&quot;&gt;↓ 组合&lt;/div&gt;
+        &lt;div class=&quot;profile-final&quot;&gt;&lt;strong&gt;Profile：本次运行的完整配置&lt;/strong&gt;&lt;span&gt;Cordis Loader 按配置安装插件；安装完成后 Agent 才可用&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;down-arrow&quot; aria-hidden=&quot;true&quot;&gt;↓ 创建&lt;/div&gt;
+        &lt;div class=&quot;core&quot;&gt;
+          &lt;div class=&quot;core-grid&quot;&gt;
+            &lt;div class=&quot;node red wide&quot;&gt;&lt;strong&gt;Agent Loop&lt;/strong&gt;&lt;span&gt;控制 turn / step，决定何时请求模型、何时执行工具、何时结束&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;node green&quot;&gt;&lt;strong&gt;Session&lt;/strong&gt;&lt;span&gt;追加事件；从日志重建模型消息&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;node orange&quot;&gt;&lt;strong&gt;Prompt / Context&lt;/strong&gt;&lt;span&gt;系统提示、技能、动态上下文&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;node orange&quot;&gt;&lt;strong&gt;LLM Runtime&lt;/strong&gt;&lt;span&gt;选择 provider，流式接收响应&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;node purple&quot;&gt;&lt;strong&gt;Tool Runtime&lt;/strong&gt;&lt;span&gt;参数解析、审批、策略检查、执行&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;node blue&quot;&gt;&lt;strong&gt;Projection / UI 读模型&lt;/strong&gt;&lt;span&gt;把事件整理成消息列表、状态、统计&lt;/span&gt;&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;session-flow&quot;&gt;
+            &lt;div class=&quot;mini&quot;&gt;Session Events&lt;br&gt;唯一事实记录&lt;/div&gt;
+            &lt;div class=&quot;mini-arrow&quot;&gt;→&lt;/div&gt;
+            &lt;div class=&quot;mini&quot;&gt;deriveMessages()&lt;br&gt;模型会话历史&lt;/div&gt;
+            &lt;div class=&quot;mini-arrow&quot;&gt;→&lt;/div&gt;
+            &lt;div class=&quot;mini&quot;&gt;LLM Request&lt;br&gt;发送前逐项核对&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;arrow-column&quot; aria-hidden=&quot;true&quot;&gt;→&lt;/div&gt;
+
+      &lt;div class=&quot;column&quot;&gt;
+        &lt;div class=&quot;section-label&quot;&gt;可替换的实现&lt;/div&gt;
+        &lt;div class=&quot;node orange&quot;&gt;&lt;strong&gt;DeepSeek / 其他 LLM Provider&lt;/strong&gt;&lt;span&gt;实现统一的模型调用接口&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;node purple&quot;&gt;&lt;strong&gt;工具与能力 Provider&lt;/strong&gt;&lt;span&gt;FS、Shell、Subprocess、Skill、Workflow、MCP…&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;node green&quot;&gt;&lt;strong&gt;持久化 Provider&lt;/strong&gt;&lt;span&gt;JSONL / SQLite 保存 Session Events&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;node blue&quot;&gt;&lt;strong&gt;展示端&lt;/strong&gt;&lt;span&gt;终端、网页或外部客户端读取投影&lt;/span&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;note&quot;&gt;
+      &lt;div class=&quot;callout&quot;&gt;&lt;b&gt;真正稳定的部分：&lt;/b&gt; &lt;span&gt;插件注册方式、Agent / LLM / Tool / Session 接口、事件格式和生命周期规则。实现可以替换，但不能跳过这些规则。&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;callout&quot;&gt;&lt;b&gt;Profile 与 Bundle：&lt;/b&gt; &lt;span&gt;Profile 是最终配置；Bundle 只是 Profile 可选择引用的配置片段。完全可以只写一个组合式 Profile。&lt;/span&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section id=&quot;seq-panel&quot; class=&quot;panel&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;seq-tab&quot; hidden&gt;
+    &lt;div class=&quot;sequence-wrap&quot;&gt;
+      &lt;div class=&quot;sequence&quot;&gt;
+        &lt;div class=&quot;lane-heads&quot;&gt;
+          &lt;div&gt;&lt;/div&gt;
+          &lt;div class=&quot;lane-head blue&quot;&gt;用户 / 入口&lt;/div&gt;
+          &lt;div class=&quot;lane-head purple&quot;&gt;Profile / Loader&lt;/div&gt;
+          &lt;div class=&quot;lane-head red&quot;&gt;Agent Loop&lt;/div&gt;
+          &lt;div class=&quot;lane-head green&quot;&gt;Session&lt;/div&gt;
+          &lt;div class=&quot;lane-head orange&quot;&gt;Prompt / LLM&lt;/div&gt;
+          &lt;div class=&quot;lane-head purple&quot;&gt;Tool Runtime&lt;/div&gt;
+          &lt;div class=&quot;lane-head blue&quot;&gt;外部 Provider&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;seq-body&quot;&gt;
+          &lt;div class=&quot;phase boot&quot;&gt;
+            &lt;div class=&quot;phase-title&quot;&gt;&lt;b&gt;A · 启动&lt;/b&gt;&lt;span&gt;先完成插件安装，再暴露 Agent&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;01&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:2/3&quot;&gt;提交任务&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:3/4&quot;&gt;读取 Profile&lt;small&gt;组合 Bundle / Patch&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;02&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:3/4&quot;&gt;安装插件并等待完成&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:4/5&quot;&gt;创建 Agent&lt;/div&gt;&lt;div class=&quot;event end&quot; style=&quot;grid-column:5/6&quot;&gt;创建 Session&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;03&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:2/3&quot;&gt;UserMessage&lt;/div&gt;&lt;div class=&quot;event end&quot; style=&quot;grid-column:4/5&quot;&gt;写入 durable inbox&lt;/div&gt;&lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=&quot;phase infer&quot;&gt;
+            &lt;div class=&quot;phase-title&quot;&gt;&lt;b&gt;B · 第一次推理&lt;/b&gt;&lt;span&gt;所有模型可见内容先进入 Session Log&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;04&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:4/5&quot;&gt;开始 turn / step&lt;/div&gt;&lt;div class=&quot;event end&quot; style=&quot;grid-column:5/6&quot;&gt;追加开始事件与用户消息&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;05&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:4/5&quot;&gt;请求组装上下文&lt;/div&gt;&lt;div class=&quot;event end&quot; style=&quot;grid-column:6/7&quot;&gt;系统提示、技能、工具定义&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;06&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:5/6&quot;&gt;deriveMessages()&lt;/div&gt;&lt;div class=&quot;event end&quot; style=&quot;grid-column:6/7&quot;&gt;发送前逐项比较&lt;small&gt;实际 messages ≠ 日志派生结果 → 当前 turn 报错结束&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;07&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:6/7&quot;&gt;调用 LLM Provider&lt;/div&gt;&lt;div class=&quot;event back&quot; style=&quot;grid-column:8/9&quot;&gt;流式响应&lt;small&gt;reasoning / text / tool call&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;08&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:4/5&quot;&gt;接收完整 assistant message&lt;/div&gt;&lt;div class=&quot;event end&quot; style=&quot;grid-column:5/6&quot;&gt;写入 assistant / chunk / message&lt;/div&gt;&lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=&quot;phase tools&quot;&gt;
+            &lt;div class=&quot;phase-title&quot;&gt;&lt;b&gt;C · 工具循环&lt;/b&gt;&lt;span&gt;有 tool call 就执行工具并进入下一个 step；没有则结束&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;09&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:4/5&quot;&gt;发现 Tool Call&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:5/6&quot;&gt;写入 tool/call&lt;/div&gt;&lt;div class=&quot;event end&quot; style=&quot;grid-column:7/8&quot;&gt;解析 JSON 参数&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;10&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:7/8&quot;&gt;pre-execute&lt;small&gt;审批 + 权限 + guard&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;event back&quot; style=&quot;grid-column:8/9&quot;&gt;执行能力&lt;small&gt;FS / Shell / Skill / Workflow / MCP&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;11&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:7/8&quot;&gt;规范化结果&lt;/div&gt;&lt;div class=&quot;event back&quot; style=&quot;grid-column:5/6&quot;&gt;写入 tool/result&lt;/div&gt;&lt;div class=&quot;event end&quot; style=&quot;grid-column:4/5&quot;&gt;开启下一 step&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;12&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:5/6&quot;&gt;重新派生完整历史&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:6/7&quot;&gt;再次调用模型&lt;/div&gt;&lt;div class=&quot;loop-note&quot;&gt;重复 08 → 12，直到 Assistant 不再返回 Tool Call&lt;/div&gt;&lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=&quot;phase finish&quot;&gt;
+            &lt;div class=&quot;phase-title&quot;&gt;&lt;b&gt;D · 结束&lt;/b&gt;&lt;span&gt;状态提交完成后，入口才拿到最终结果&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;13&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:4/5&quot;&gt;step/end + turn/end&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:5/6&quot;&gt;提交事件并刷新存储&lt;/div&gt;&lt;div class=&quot;event back end&quot; style=&quot;grid-column:2/3&quot;&gt;返回最终文本&lt;small&gt;Agent 回到 idle&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=&quot;phase recovery&quot;&gt;
+            &lt;div class=&quot;phase-title&quot;&gt;&lt;b&gt;E · 重启恢复&lt;/b&gt;&lt;span&gt;不猜测崩溃前的工具是否已经产生外部影响&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;14&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:3/4&quot;&gt;进程重新启动&lt;/div&gt;&lt;div class=&quot;event end&quot; style=&quot;grid-column:5/6&quot;&gt;加载并检查事件顺序&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;seq-row&quot;&gt;&lt;div class=&quot;step-no&quot;&gt;15&lt;/div&gt;&lt;div class=&quot;event&quot; style=&quot;grid-column:5/6&quot;&gt;发现未完成 tool call&lt;small&gt;标记“没有开始”或“结果未知”&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;event end&quot; style=&quot;grid-column:4/5&quot;&gt;结束未完成 step / turn&lt;small&gt;避免把工具盲目重跑一遍&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;legend&quot;&gt;实线框表示一次明确动作；横向箭头表示调用或返回。Session 是唯一持久事实来源，Projection 只是为 UI 整理这些事件，不反向修改事实。&lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;script&gt;
+    (() =&gt; {
+      const root = document.getElementById(&#x27;dsh-architecture-flow&#x27;);
+      const tabs = [...root.querySelectorAll(&#x27;.tab&#x27;)];
+      const panels = [...root.querySelectorAll(&#x27;.panel&#x27;)];
+      tabs.forEach((tab) =&gt; {
+        tab.addEventListener(&#x27;click&#x27;, () =&gt; {
+          tabs.forEach((item) =&gt; {
+            const active = item === tab;
+            item.classList.toggle(&#x27;active&#x27;, active);
+            item.setAttribute(&#x27;aria-selected&#x27;, String(active));
+          });
+          panels.forEach((panel) =&gt; { panel.hidden = panel.id !== tab.getAttribute(&#x27;aria-controls&#x27;); });
+        });
+      });
+    })();
+  &lt;/script&gt;
+&lt;/div&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =&gt;
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest(&quot;[data-tooltip]&quot;)
+      : null;
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    document.removeEventListener(&quot;pointerover&quot;, handlePointerOpen);
+    document.removeEventListener(&quot;pointerout&quot;, handleLeave);
+    document.removeEventListener(&quot;focusin&quot;, handleFocusIn);
+    document.removeEventListener(&quot;focusout&quot;, handleLeave);
+    document.removeEventListener(&quot;keydown&quot;, handleKeyDown);
+    document.removeEventListener(&quot;contextmenu&quot;, handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener(&quot;pointerover&quot;, handlePointerOpen);
+  document.addEventListener(&quot;pointerout&quot;, handleLeave);
+  document.addEventListener(&quot;focusin&quot;, handleFocusIn);
+  document.addEventListener(&quot;focusout&quot;, handleLeave);
+  document.addEventListener(&quot;keydown&quot;, handleKeyDown);
+  document.addEventListener(&quot;contextmenu&quot;, handleContextMenu);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</body>
+</html>
